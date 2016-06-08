@@ -2,7 +2,8 @@ from peewee import *
 from collections import OrderedDict
 
 
-db = SqliteDatabase('addressbook.db')
+#db = SqliteDatabase('addressbook.db')
+db = MySQLDatabase('test', user='root', password='snitz086745')
 
 
 class Addressbook(Model):
@@ -24,16 +25,31 @@ def initialize_db():
     """connect to the database and create any tables if they do no exist."""
     db.connect()
     db.create_tables([Addressbook, Contact], safe=True)
+    db.close()
 
 
-def initialize_addressbook(name):
+def create_new_addressbook(name):
     """Create a new addressbook, or if the addressbook name already exists,
     return the existing one."""
 
+    db.connect()
     try:
-        return Addressbook(name=name)
+        return Addressbook.create(name=name)
     except IntegrityError:
-        return Addressbook.get(Addressbook.name == name)
+        raise
+
+
+def get_addressbooks(name=None):
+    query = Addressbook.select()
+    if name:
+        query = query.where(Addressbook.name == name).get()
+
+    return query
+
+
+def delete_addressbook(name):
+    addressbook = Addressbook.get(Addressbook.name == name)
+    addressbook.delete_instance()
 
 
 def add_contact(addressbook=None, name=None):
@@ -46,10 +62,6 @@ def add_contact(addressbook=None, name=None):
     return Contact(addressbook=addressbook, name=name)
 
 
-def list_addressbooks():
-    """list all available addressbooks"""
-
-
 def menu_loop():
     """Show the menu."""
     choice = None
@@ -57,19 +69,19 @@ def menu_loop():
     while choice != 'q':
         print("Enter 'q' to quit")
         for key, value in menu.items():
-            print('{}'.format(key))
+            print('{}) {}'.format(key, value.__doc__))
 
         choice = input('Action: ').lower().strip()
 
         if choice in menu:
             menu[choice]()
 
-
-
-menu = OrderedDict([
-    ('a) Select addressbook', initialize_db),
-    ('l) List addressbooks', list_addressbooks),
-])
+#
+#
+# menu = OrderedDict([
+#     ('a', create_addressbook),
+#     ('l', select_addressbook),
+# ])
 
 
 if __name__ == '__main__':
